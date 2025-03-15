@@ -5,6 +5,7 @@ import connect from './db/db.js';
 import userRoutes from './db/routes/user.routes.js';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
+import aiRoutes from './db/routes/ai.routes.js';
 import projectRoutes from './db/routes/project.routes.js'
 
 connect();
@@ -18,6 +19,7 @@ app.use(express.urlencoded({extended: true}));
 app.use(cookieParser());
 app.use('/users',userRoutes);
 app.use('/projects',projectRoutes)
+app.use('/ai',aiRoutes)
 
 
 app.get('/',(req,res)=>{
