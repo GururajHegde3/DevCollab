@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { UserContext } from '../context/user.context';
 import { useLocation } from 'react-router-dom';
 import axios from '../config/axios';
+import Markdown from 'markdown-to-jsx';
 import { initializeSocket, recieveMessage, sendMessage } from '../config/socket.js';
 
 const Project = ()=> {
@@ -13,6 +14,7 @@ const Project = ()=> {
     const [project, setProject] = useState(location.state.project);
     const [message, setMessage] = useState('');
     const { user } = useContext(UserContext);
+    const [ messages, setMessages ] = useState([])
     const messageBox=React.createRef()
 
     const handleUserClick = (id) => {
@@ -27,77 +29,35 @@ const Project = ()=> {
         });
     };
 
+   
     const send = () => {
-        if (message.trim()) {
-            sendMessage('project-message', { message, sender: user });
-            appendOutgoingMessage(message);
-            setMessage('');
-        }
-    };
+
+        sendMessage('project-message', {
+            message,
+            sender: user
+        })
+        setMessages(prevMessages => [ ...prevMessages, { sender: user, message } ]) // Update messages state
+        setMessage("")
+
+    }
 
     useEffect(() => { 
         initializeSocket(project._id);
-    
-        const messageHandler = (data) => {
-            if (data.sender.email !== user.email) {
-                appendIncomingMessage(data);
-            }
-        };
-    
-        recieveMessage('project-message', messageHandler);
-    
+        recieveMessage('project-message', data => {
+        setMessages(prevMessages => [ ...prevMessages, data ])
+        });
         axios.get(`/projects/get-project/${location.state.project._id}`).then(res => {
+    
             setProject(res.data.project);
         });
-    
         axios.get('/users/all').then(res => {
             setUsers(res.data.users);
         }).catch(err => {
             console.log(err);
         });
-    
-        return () => {
-            // Cleanup function to prevent duplicate event listeners
-            recieveMessage('project-message', messageHandler, true); 
-        };
     }, []);
     
-    function appendIncomingMessage(messageObject) {
-        const messageBox = document.querySelector('.message-box');
-        const message = document.createElement('div');
-        const isCurrentUser = messageObject.sender.email === user.email;
-        
-        message.classList.add('message', 'max-w-56', 'flex', 'flex-col', 'min-w-6', 'p-2', 'bg-slate-50', 'w-fit', 'rounded-md', 'mb-2');
-        
-        if (isCurrentUser) {
-            message.classList.add('ml-auto');
-        }
-        
-        message.innerHTML = `
-            <small class='opacity-65 text-xs'>${messageObject.sender.email}</small>
-            <p class='text-sm'>${messageObject.message}</p>
-        `;
-        
-        messageBox.appendChild(message);
-        messageBox.scrollTop = messageBox.scrollHeight;
-        scrollToBottom()
-    } 
-
-
-    function appendOutgoingMessage(message){
-        const messageBox = document.querySelector('.message-box');
-        const newMessage = document.createElement('div');
-        newMessage.classList.add('ml-auto', 'max-w-56', 'flex', 'flex-col', 'min-w-6', 'p-2', 'bg-slate-50', 'w-fit', 'rounded-md', 'mb-2');
-        
-        newMessage.innerHTML = `
-            <small class='opacity-65 text-xs'>${user.email}</small>
-            <p class='text-sm'>${message}</p>
-        `;
-        
-        messageBox.appendChild(newMessage);
-        scrollToBottom()
-
-    }
+   
 
     function addCollaborators() {
         axios.put('/projects/add-user', {
@@ -111,9 +71,6 @@ const Project = ()=> {
         });
     }
 
-function scrollToBottom(){
-    messageBox.current.scrollTop = messageBox.current.scrollHeight
-}
 
 
     return (
@@ -131,6 +88,17 @@ function scrollToBottom(){
 
                 <div className="conversation-area pt-14 pb-10 flex-grow flex flex-col h-full relative">
                     <div ref={messageBox} className='message-box p-1 flex-grow flex flex-col gap-1 overflow-auto max-h-full scrollbar-hide'>
+                    {messages.map((msg, index) => (
+                            <div key={index} className={`${msg.sender._id === 'ai' ? 'max-w-80' : 'max-w-52'} ${msg.sender._id == user._id.toString() && 'ml-auto'}  message flex flex-col p-2 bg-slate-50 w-fit rounded-md`}>
+                                <small className='opacity-65 text-xs'>{msg.sender.email}</small>
+                                <div className='text-sm'>
+                                    {msg.sender._id === 'ai' ?
+                                    <div className='overflow-auto bg-slate-900 text-white p-2 rounded-md'>
+                                        <Markdown>{msg.message}</Markdown>
+                                        </div> : <p>{msg.message}</p>}
+                                </div>
+                            </div>
+                        ))}
                        
                     </div>
                     <div className='className="inputField w-full flex absolute bottom-0 bg-slate-50'>
