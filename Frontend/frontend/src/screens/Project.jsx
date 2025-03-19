@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useState, useEffect, useContext, useRef } from 'react';
 import { UserContext } from '../context/user.context';
 import { useLocation } from 'react-router-dom';
 import axios from '../config/axios';
 import Markdown from 'markdown-to-jsx';
 import { initializeSocket, recieveMessage, sendMessage } from '../config/socket.js';
 
-const Project = ()=> {
+const Project = () => {
     const [isSidePanelOpen, setIsSidePanelOpen] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [selectedUserId, setSelectedUserId] = useState(new Set());
@@ -14,8 +14,22 @@ const Project = ()=> {
     const [project, setProject] = useState(location.state.project);
     const [message, setMessage] = useState('');
     const { user } = useContext(UserContext);
-    const [ messages, setMessages ] = useState([])
-    const messageBox=React.createRef()
+    const [fileTree, setFileTree] = useState({
+        "app.js": {
+            "content": `const express=require('express');`
+        },
+        "package.json": {
+            content: `{
+            "name":"temp-server",
+
+            }`
+        }
+
+    })
+    const [currentFile,setCurrentFile]=useState(null)
+    const [openFiles,setOpenFiles]=useState([])
+    const [messages, setMessages] = useState([])
+    const messageBox = React.createRef()
 
     const handleUserClick = (id) => {
         setSelectedUserId(prevSelectedUserId => {
@@ -29,25 +43,25 @@ const Project = ()=> {
         });
     };
 
-   
+
     const send = () => {
 
         sendMessage('project-message', {
             message,
             sender: user
         })
-        setMessages(prevMessages => [ ...prevMessages, { sender: user, message } ]) // Update messages state
+        setMessages(prevMessages => [...prevMessages, { sender: user, message }]) // Update messages state
         setMessage("")
 
     }
 
-    useEffect(() => { 
+    useEffect(() => {
         initializeSocket(project._id);
         recieveMessage('project-message', data => {
-        setMessages(prevMessages => [ ...prevMessages, data ])
+            setMessages(prevMessages => [...prevMessages, data])
         });
         axios.get(`/projects/get-project/${location.state.project._id}`).then(res => {
-    
+
             setProject(res.data.project);
         });
         axios.get('/users/all').then(res => {
@@ -56,8 +70,42 @@ const Project = ()=> {
             console.log(err);
         });
     }, []);
-    
-   
+
+    function SyntaxHighlightedCode(props) {
+        const ref = useRef(null)
+
+        React.useEffect(() => {
+            if (ref.current && props.className?.includes('lang-') && window.hljs) {
+                window.hljs.highlightElement(ref.current)
+
+                // hljs won't reprocess the element unless this attribute is removed
+                ref.current.removeAttribute('data-highlighted')
+            }
+        }, [props.className, props.children])
+
+        return <code {...props} ref={ref} />
+    }
+
+
+
+    function WriteAiMessage(message) {
+
+        const messageObject = JSON.parse(message)
+
+        return (
+            <div
+                className='overflow-auto bg-slate-950 text-white rounded-sm p-2'
+            >
+                <Markdown
+                    children={messageObject.text}
+                    options={{
+                        overrides: {
+                            code: SyntaxHighlightedCode,
+                        },
+                    }}
+                />
+            </div>)
+    }
 
     function addCollaborators() {
         axios.put('/projects/add-user', {
@@ -88,22 +136,20 @@ const Project = ()=> {
 
                 <div className="conversation-area pt-14 pb-10 flex-grow flex flex-col h-full relative">
                     <div ref={messageBox} className='message-box p-1 flex-grow flex flex-col gap-1 overflow-auto max-h-full scrollbar-hide'>
-                    {messages.map((msg, index) => (
+                        {messages.map((msg, index) => (
                             <div key={index} className={`${msg.sender._id === 'ai' ? 'max-w-80' : 'max-w-52'} ${msg.sender._id == user._id.toString() && 'ml-auto'}  message flex flex-col p-2 bg-slate-50 w-fit rounded-md`}>
                                 <small className='opacity-65 text-xs'>{msg.sender.email}</small>
                                 <div className='text-sm'>
                                     {msg.sender._id === 'ai' ?
-                                    <div className='overflow-auto bg-slate-900 text-white p-2 rounded-md'>
-                                        <Markdown>{msg.message}</Markdown>
-                                        </div> : <p>{msg.message}</p>}
+                                        WriteAiMessage(msg.message)
+                                        : <p>{msg.message}</p>}
                                 </div>
                             </div>
                         ))}
-                       
                     </div>
                     <div className='className="inputField w-full flex absolute bottom-0 bg-slate-50'>
                         <input value={message} onChange={(e) => setMessage(e.target.value)} className='p-2 px-4 border-none outline-none flex-grow' type="text" placeholder='Enter message' />
-                        <button className='px-5 bg-slate-950 text-white' onClick={send}><i  className='ri-send-plane-fill'></i></button>
+                        <button className='px-5 bg-slate-950 text-white' onClick={send}><i className='ri-send-plane-fill'></i></button>
                     </div>
                 </div>
 
@@ -123,6 +169,47 @@ const Project = ()=> {
                         ))}
                     </div>
                 </div>
+            </section>
+
+            <section className="right bg-red-50 flex flex-grow h-full">
+                <div className="explorer h-full max-w-64 min-w-52  bg-slate-400">
+                    <div className='file-tree w-full'>
+                        {
+                            Object.keys(fileTree).map((file,index)=>(
+                                
+                    <button onClick={()=>{setCurrentFile(file)
+                    setOpenFiles(prevOpenFiles => prevOpenFiles.includes(file) ? prevOpenFiles : [...prevOpenFiles, file])
+                    } }className="tree-element cursor-pointer p-2 px-4 flex items-center gap-2 bg-slate-200 w-full ">
+                    <p className=' font-semibold text-lg'>{file}</p>
+                    </button>
+                  
+                            ))
+                        }
+
+
+                    </div>
+                </div>
+               {currentFile && ( <div className="code-editor flex flex-col flex-grow h-full shrink">
+                    <div className="top flex ">
+                       {
+                        openFiles.map((file,index) => (
+                            <button onClick={()=>setCurrentFile(file)} className={`p-2 px-4 ${currentFile===file?'bg-slate-200':''} cursor-pointer`}>{file}</button>
+                        ))
+                    }
+               
+                    </div>
+                    <div className="bottom flex flex-grow">
+                        {
+                            fileTree[currentFile] && (
+                                <textarea value={fileTree[currentFile].content} onChange={(e)=>setFileTree({...fileTree,[currentFile]:{content:e.target.value}})} className='w-full h-full bg-slate-50 p-2 outline-none border-none resize-none'></textarea>
+                            )
+                        }
+
+                    </div>
+                    
+
+</div>)}
+
             </section>
 
             {isModalOpen && (
