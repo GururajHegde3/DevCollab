@@ -107,7 +107,7 @@ const Login = () => {
          
           <p className="text-slate-400">
             No account?
-            <Link to="https://devcollab-4vyp.onrender.com/users/register" className="text-blue-400 hover:text-blue-300 ml-1">
+            <Link to="https://devcollab-4vyp.onrender.com/register" className="text-blue-400 hover:text-blue-300 ml-1">
               Sign Up
             </Link>
           </p>
