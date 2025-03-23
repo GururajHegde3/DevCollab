@@ -20,7 +20,10 @@ router.put('/add-user',authMiddleware.authUser,
     projectController.addUserToProject)
 
     router.get('/get-project/:projectId',authMiddleware.authUser,projectController.getProjectById)
-
+    router.put('/update-file-tree',authMiddleware.authUser,
+    body('projectId').isString().withMessage('projectId is required'),
+    body('fileTree').isObject().withMessage('fileTree must be an object'),
+    projectController.updateFileTree)
 
 
 

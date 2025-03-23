@@ -7,7 +7,7 @@ import jwt from 'jsonwebtoken';
 import { generateResult } from './db/services/ai.service.js';
 import projectModel from './db/models/project.model.js';
 
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 8080;
 const server = http.createServer(app);
 
 const io = new Server(server, {
