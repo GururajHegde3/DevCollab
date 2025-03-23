@@ -4,10 +4,10 @@ import React, { useState, useEffect, useContext, useRef } from "react"
 import { UserContext } from "../context/user.context"
 import { useLocation } from "react-router-dom"
 import axios from "../config/axios"
-import { initializeSocket, receiveMessage, sendMessage } from "../config/socket"
+import { initializeSocket, receiveMessage, sendMessage } from "../config/socket.js"
 import Markdown from "markdown-to-jsx"
 import hljs from "highlight.js"
-import { getWebContainer } from "../config/webcontainer"
+import { getWebContainer } from "../config/webContainer.js
 import { ArrowRight, Code, Play, Plus, Send, User, Users, X } from "lucide-react"
 
 function SyntaxHighlightedCode(props) {
