@@ -24,11 +24,11 @@ const Login = () => {
     setError("")
 
     axios
-      .post("/users/login", { email, password })
+      .post("https://devcollab-4vyp.onrender.com/users/login", { email, password })
       .then((res) => {
         localStorage.setItem("token", res.data.token)
         setUser(res.data.user)
-        navigate("/")
+        navigate("https://devcollab-4vyp.onrender.com/")
       })
       .catch((err) => {
         setError(err.response?.data?.message || "Login failed")
@@ -107,7 +107,7 @@ const Login = () => {
          
           <p className="text-slate-400">
             No account?
-            <Link to="/register" className="text-blue-400 hover:text-blue-300 ml-1">
+            <Link to="https://devcollab-4vyp.onrender.com/register" className="text-blue-400 hover:text-blue-300 ml-1">
               Sign Up
             </Link>
           </p>

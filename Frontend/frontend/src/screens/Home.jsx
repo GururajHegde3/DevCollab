@@ -1,12 +1,12 @@
 
-import { useContext, useState, useEffect } from "react"
+import {  useState, useEffect } from "react"
 import { UserContext } from "../context/user.context"
 import axios from "../config/axios"
 import { useNavigate } from "react-router-dom"
 import { FolderPlus, Users, X, Plus, Folder, Search } from "lucide-react"
 
 const Home = () => {
-  const { user } = useContext(UserContext)
+
   const [isModalOpen, setModalOpen] = useState(false)
   const [projectName, setProjectName] = useState("")
   const [projects, setProjects] = useState([])
@@ -22,7 +22,7 @@ const Home = () => {
     setIsLoading(true)
 
     axios
-      .post("/projects/create", {
+      .post("https://devcollab-4vyp.onrender.com/projects/create", {
         name: projectName,
       })
       .then((res) => {
@@ -41,7 +41,7 @@ const Home = () => {
   const fetchProjects = () => {
     setIsLoading(true)
     axios
-      .get("/projects/all")
+      .get("https://devcollab-4vyp.onrender.com/projects/all")
       .then((res) => {
         setProjects(res.data.projects)
         setIsLoading(false)
@@ -114,7 +114,7 @@ const Home = () => {
               <div
                 key={project._id}
                 onClick={() => {
-                  navigate("/project", {
+                  navigate("https://devcollab-4vyp.onrender.com/project", {
                     state: { project },
                   })
                 }}

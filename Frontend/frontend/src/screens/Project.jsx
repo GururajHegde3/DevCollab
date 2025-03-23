@@ -62,7 +62,7 @@ const Project = () => {
 
   function addCollaborators() {
     axios
-      .put("/projects/add-user", {
+      .put("https://devcollab-4vyp.onrender.com/projects/add-user", {
         projectId: location.state.project._id,
         users: Array.from(selectedUserId),
       })
@@ -152,14 +152,14 @@ const Project = () => {
       }, 100)
     })
 
-    axios.get(`/projects/get-project/${location.state.project._id}`).then((res) => {
+    axios.get(`https://devcollab-4vyp.onrender.com/projects/get-project/${location.state.project._id}`).then((res) => {
       console.log(res.data.project)
       setProject(res.data.project)
       setFileTree(res.data.project.fileTree || {})
     })
 
     axios
-      .get("/users/all")
+      .get("https://devcollab-4vyp.onrender.com/users/all")
       .then((res) => {
         setUsers(res.data.users)
       })
@@ -170,7 +170,7 @@ const Project = () => {
 
   function saveFileTree(ft) {
     axios
-      .put("/projects/update-file-tree", {
+      .put("https://devcollab-4vyp.onrender.com/projects/update-file-tree", {
         projectId: project._id,
         fileTree: ft,
       })
