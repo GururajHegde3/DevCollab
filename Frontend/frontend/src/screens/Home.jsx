@@ -114,7 +114,7 @@ const Home = () => {
               <div
                 key={project._id}
                 onClick={() => {
-                  navigate("https://devcollab-4vyp.onrender.com/project", {
+                  navigate("/project", {
                     state: { project },
                   })
                 }}
