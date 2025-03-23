@@ -21,33 +21,38 @@ export const createUserController= async(req,res) =>{
     }
 
 }
+export const loginController = async (req, res) => {
+  const errors = validationResult(req);
 
-export const loginController = async (req,res)=>{
-    const errors=validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
 
-    if(!errors.isEmpty()){
-        return res.status(400).json({errors:errors.array()});
-    }
-    try{
-        const {email,password} = req.body;
-        const user = await userModel.findOne({email}).select('+password');
-        if(!user){
-            res.status(401).json({ errors: 'Invalid credentials'});
-        }
-        const isMatch = await user.isValidPassword(password);
+  try {
+    const { email, password } = req.body;
+    const user = await userModel.findOne({ email }).select('+password');
 
-        if(!isMatch){
-            return res.status(401).json({ errors: 'Invalid credentials'});
-        }
-        const token = await user.generateToken();
-        delete user._doc.password;
-        res.status(200).json({user,token});
+    if (!user) {
+      return res.status(401).json({ errors: 'Invalid credentials' });
     }
-    catch(err){
-        res.status(401).send(err.message);
+
+    const isMatch = await user.isValidPassword(password);
+
+    if (!isMatch) {
+      return res.status(401).json({ errors: 'Invalid credentials' });
     }
- 
-}
+
+    const token = await user.generateToken();
+    delete user._doc.password;
+
+    return res.status(200).json({ user, token });
+  } catch (err) {
+    if (!res.headersSent) {
+      res.status(500).send(err.message);
+    }
+  }
+};
+
 
 export const profileController = async(req,res)=>{
     console.log(req.user);
