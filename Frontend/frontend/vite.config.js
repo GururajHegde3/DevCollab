@@ -12,7 +12,7 @@ export default defineConfig({
     },
     proxy:{
       "/cdn":{
-        target:"http://localhost:8080",
+        target:"https://devcollab-4vyp.onrender.com",
         changeOrigin:true
       }
     }
