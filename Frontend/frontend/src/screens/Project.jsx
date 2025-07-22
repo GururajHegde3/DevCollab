@@ -8,8 +8,6 @@ import { initializeSocket, receiveMessage, sendMessage } from "../config/socket.
 import Markdown from "markdown-to-jsx"
 import hljs from "highlight.js"
 import { getWebContainer } from "../config/webContainer.js"
-import { ArrowRight, Code, Play, Plus, Send, User, Users, X } from "lucide-react"
-
 import { ArrowRight, Code, Play, Plus, Send, User, Users, X, MessageSquare, GitBranch, Folder } from "lucide-react"
 
 function SyntaxHighlightedCode(props) {
