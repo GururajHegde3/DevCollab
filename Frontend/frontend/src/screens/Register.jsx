@@ -11,12 +11,12 @@ const Register = () => {
 
     function submitHandler(e){
         e.preventDefault();
-        axios.post('https://devcollab-4vyp.onrender.com/users/register',{email,password}).
+        axios.post('/users/register',{email,password}).
         then((res)=>{
             console.log(res.data)
             localStorage.setItem('token',res.data.token)
             setUser(res.data.user)
-        navigate('https://devcollab-4vyp.onrender.com/')}).catch((err)=>{
+        navigate('/')}).catch((err)=>{
                 console.log(err.response.data)
             })
     }
@@ -61,7 +61,7 @@ const Register = () => {
           <Link to="#" className="text-sm text-blue-400 hover:underline">Forgot Password?</Link>
           <p className="text-gray-400 text-sm">
             Already have an account? 
-            <Link to="https://devcollab-4vyp.onrender.com/login" className="text-blue-400 hover:underline ml-1">Login</Link>
+            <Link to="/login" className="text-blue-400 hover:underline ml-1">Login</Link>
           </p>
         </div>
       </div>

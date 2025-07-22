@@ -4,11 +4,11 @@ import React, { useState, useEffect, useContext, useRef } from "react"
 import { UserContext } from "../context/user.context"
 import { useLocation } from "react-router-dom"
 import axios from "../config/axios"
-import { initializeSocket, receiveMessage, sendMessage } from "../config/socket"
+import { initializeSocket, receiveMessage, sendMessage } from "../config/socket.js"
 import Markdown from "markdown-to-jsx"
 import hljs from "highlight.js"
-import { getWebContainer } from "../config/webcontainer"
-import { ArrowRight, Code, Play, Plus, Send, User, Users, X } from "lucide-react"
+import { getWebContainer } from "../config/webContainer.js"
+import { ArrowRight, Code, Play, Plus, Send, User, Users, X, MessageSquare, GitBranch, Folder } from "lucide-react"
 
 function SyntaxHighlightedCode(props) {
   const ref = useRef(null)
@@ -47,6 +47,7 @@ const Project = () => {
 
   const [runProcess, setRunProcess] = useState(null)
   const [isRunning, setIsRunning] = useState(false)
+  const [activeTab, setActiveTab] = useState("code") // 'code' or 'chat'
 
   const handleUserClick = (id) => {
     setSelectedUserId((prevSelectedUserId) => {
@@ -62,7 +63,7 @@ const Project = () => {
 
   function addCollaborators() {
     axios
-      .put("https://devcollab-4vyp.onrender.com/projects/add-user", {
+      .put("/projects/add-user", {
         projectId: location.state.project._id,
         users: Array.from(selectedUserId),
       })
@@ -152,14 +153,14 @@ const Project = () => {
       }, 100)
     })
 
-    axios.get(`https://devcollab-4vyp.onrender.com/projects/get-project/${location.state.project._id}`).then((res) => {
+    axios.get(`/projects/get-project/${location.state.project._id}`).then((res) => {
       console.log(res.data.project)
       setProject(res.data.project)
       setFileTree(res.data.project.fileTree || {})
     })
 
     axios
-      .get("https://devcollab-4vyp.onrender.com/users/all")
+      .get("/users/all")
       .then((res) => {
         setUsers(res.data.users)
       })
@@ -170,7 +171,7 @@ const Project = () => {
 
   function saveFileTree(ft) {
     axios
-      .put("https://devcollab-4vyp.onrender.com/projects/update-file-tree", {
+      .put("/projects/update-file-tree", {
         projectId: project._id,
         fileTree: ft,
       })
@@ -344,66 +345,116 @@ app.listen(port, () => {
     saveFileTree(updatedFileTree)
     return updatedFileTree
   }
+  
+  // Get file icon based on extension
+  const getFileIcon = (filename) => {
+    if (filename.endsWith('.js')) return '📄 ';
+    if (filename.endsWith('.json')) return '🔧 ';
+    if (filename.endsWith('.html')) return '🌐 ';
+    if (filename.endsWith('.css')) return '🎨 ';
+    return '📄 ';
+  };
 
   return (
-    <main className="h-screen w-screen flex bg-slate-50 overflow-hidden">
+    <main className="h-screen w-screen flex bg-gradient-to-br from-slate-50 to-slate-100 overflow-hidden">
+      {/* Mobile navigation tabs - only visible on small screens */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 flex justify-around bg-white border-t border-slate-200 z-20">
+        <button 
+          onClick={() => setActiveTab('chat')}
+          className={`p-3 flex flex-col items-center flex-1 ${activeTab === 'chat' ? 'text-blue-600' : 'text-slate-600'}`}
+        >
+          <MessageSquare size={20} />
+          <span className="text-xs mt-1">Chat</span>
+        </button>
+        <button 
+          onClick={() => setActiveTab('code')}
+          className={`p-3 flex flex-col items-center flex-1 ${activeTab === 'code' ? 'text-blue-600' : 'text-slate-600'}`}
+        >
+          <Code size={20} />
+          <span className="text-xs mt-1">Code</span>
+        </button>
+      </div>
+
       {/* Left Section - Chat */}
-      <section className="left relative flex flex-col h-screen w-96 bg-white border-r border-slate-200 shadow-sm">
-        <header className="flex justify-between items-center p-4 w-full bg-white border-b border-slate-200 sticky z-10 top-0">
-          <button
-            className="flex items-center gap-2 text-slate-700 hover:text-slate-900 transition-colors px-3 py-1.5 rounded-md hover:bg-slate-100"
-            onClick={() => setIsModalOpen(true)}
-          >
-            <Plus size={18} />
-            <span className="font-medium">Add collaborator</span>
-          </button>
-          <button
-            onClick={() => setIsSidePanelOpen(!isSidePanelOpen)}
-            className="p-2 rounded-full hover:bg-slate-100 transition-colors text-slate-700"
-          >
-            <Users size={20} />
-          </button>
+      <section className={`left relative flex flex-col h-screen w-96 bg-white border-r border-slate-200 shadow-md
+                           md:translate-x-0 transition-transform duration-300 ease-in-out
+                           ${activeTab === 'chat' ? 'translate-x-0' : '-translate-x-full absolute'} 
+                           md:static md:block z-10`}>
+        <header className="flex justify-between items-center p-4 w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white sticky z-10 top-0">
+          <div className="flex items-center gap-2">
+            <GitBranch size={20} />
+            <h1 className="font-bold text-lg">{project.name || "Project"}</h1>
+          </div>
+          <div className="flex gap-2">
+            <button
+              className="flex items-center gap-1 bg-blue-400 bg-opacity-30 hover:bg-opacity-40 transition-colors px-3 py-1.5 rounded-md"
+              onClick={() => setIsModalOpen(true)}
+            >
+              <Plus size={16} />
+              <span className="font-medium text-sm">Add</span>
+            </button>
+            <button
+              onClick={() => setIsSidePanelOpen(!isSidePanelOpen)}
+              className="p-2 rounded-full hover:bg-blue-400 hover:bg-opacity-30 transition-colors"
+            >
+              <Users size={18} />
+            </button>
+          </div>
         </header>
 
-        <div className="conversation-area pt-2 pb-16 flex-grow flex flex-col h-full relative">
+        <div className="conversation-area pt-2 pb-20 flex-grow flex flex-col h-full relative">
           <div
             ref={messageBox}
             className="message-box p-4 flex-grow flex flex-col gap-3 overflow-auto max-h-full scrollbar-hide"
           >
             {messages.length === 0 && (
               <div className="flex items-center justify-center h-full">
-                <p className="text-slate-400 text-center">No messages yet. Start a conversation!</p>
+                <div className="text-center">
+                  <MessageSquare size={40} className="mx-auto mb-3 text-slate-300" />
+                  <p className="text-slate-400">No messages yet. Start a conversation!</p>
+                </div>
               </div>
             )}
 
-            {messages.map((msg, index) => (
-              <div
-                key={index}
-                className={`${msg.sender._id === "ai" ? "max-w-[85%]" : "max-w-[75%]"} 
-                  ${msg.sender._id === user._id.toString() ? "ml-auto" : ""}
-                  message flex flex-col p-3 
-                  ${
-                    msg.sender._id === user._id.toString()
-                      ? "bg-blue-500 text-white rounded-2xl rounded-br-sm"
-                      : msg.sender._id === "ai"
-                        ? "bg-slate-100 rounded-2xl rounded-tl-sm"
-                        : "bg-slate-200 rounded-2xl rounded-tl-sm"
-                  }
-                  shadow-sm transition-all duration-200 hover:shadow-md`}
-              >
-                <small
-                  className={`${msg.sender._id === user._id.toString() ? "text-blue-100" : "text-slate-500"} text-xs font-medium mb-1`}
-                >
-                  {msg.sender.email}
-                </small>
-                <div className={`text-sm ${msg.sender._id === user._id.toString() ? "text-white" : "text-slate-800"}`}>
-                  {msg.sender._id === "ai" ? WriteAiMessage(msg.message) : <p className="break-words">{msg.message}</p>}
-                </div>
-              </div>
-            ))}
+{messages.map((msg, index) => (
+    <div
+      key={index}
+      className={`${msg.sender._id === "ai" ? "max-w-[85%]" : "max-w-[75%]"} 
+        ${msg.sender._id === user._id.toString() ? "ml-auto" : ""}
+        message flex flex-col p-3 
+        ${
+          msg.sender._id === user._id.toString()
+            ? "bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-2xl rounded-br-sm"
+            : msg.sender._id === "ai"
+              ? "bg-gradient-to-br from-slate-100 to-slate-200 rounded-2xl rounded-tl-sm"
+              : "bg-gradient-to-br from-slate-200 to-slate-300 rounded-2xl rounded-tl-sm"
+        }
+        shadow-lg transition-all duration-200 hover:shadow-xl`}
+    >
+      <div className="flex items-center gap-2 mb-1">
+        <div className={`w-5 h-5 rounded-full flex items-center justify-center
+          ${msg.sender._id === user._id.toString() ? "bg-blue-400" : msg.sender._id === "ai" ? "bg-slate-500" : "bg-slate-400"}`}>
+          {msg.sender._id === "ai" ? 
+            <span className="text-xs text-white">AI</span> : 
+            <User size={12} className="text-white" />
+          }
+        </div>
+        <small
+          className={`${msg.sender._id === user._id.toString() ? "text-blue-100" : "text-slate-500"} text-xs font-medium md:text-sm md:font-bold`}
+          style={{ fontWeight: 'bold', color: msg.sender._id === user._id.toString() ? '#ffffff' : '#333333' }}
+        >
+          {msg.sender._id === "ai" ? "AI Assistant" : msg.sender.email.split('@')[0]}
+        </small>
+      </div>
+      <div className={`text-sm ${msg.sender._id === user._id.toString() ? "text-white" : "text-slate-800"}`}>
+        {msg.sender._id === "ai" ? WriteAiMessage(msg.message) : <p className="break-words">{msg.message}</p>}
+      </div>
+    </div>
+  ))}
+
           </div>
 
-          <div className="inputField w-full flex absolute bottom-0 p-3 bg-white border-t border-slate-200">
+          <div className="inputField w-full flex absolute bottom-15 p-3 bg-white border-t border-slate-200">
             <input
               value={message}
               onChange={(e) => setMessage(e.target.value)}
@@ -415,7 +466,9 @@ app.listen(port, () => {
             <button
               onClick={send}
               disabled={!message.trim()}
-              className={`px-5 bg-blue-500 text-white rounded-r-full transition-colors hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${!message.trim() ? "opacity-70 cursor-not-allowed" : ""}`}
+              className={`px-5 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-r-full transition-all hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                !message.trim() ? "opacity-70 cursor-not-allowed" : ""
+              }`}
             >
               <Send size={18} />
             </button>
@@ -424,14 +477,13 @@ app.listen(port, () => {
 
         {/* Side Panel for Collaborators */}
         <div
-          className={`sidePanel w-full h-full flex flex-col gap-2 bg-white absolute transition-all duration-300 ease-in-out ${isSidePanelOpen ? "translate-x-0" : "-translate-x-full"} top-0 z-20 shadow-lg border-r border-slate-200`}
+          className={`sidePanel w-full h-full flex flex-col gap-2 bg-white absolute transition-all duration-300 ease-in-out ${
+            isSidePanelOpen ? "translate-x-0" : "-translate-x-full"
+          } top-0 z-20 shadow-lg border-r border-slate-200`}
         >
-          <header className="flex justify-between items-center px-4 py-3 bg-slate-100 border-b border-slate-200">
-            <h1 className="font-semibold text-lg text-slate-800">Collaborators</h1>
-            <button
-              onClick={() => setIsSidePanelOpen(false)}
-              className="p-2 rounded-full hover:bg-slate-200 transition-colors"
-            >
+          <header className="flex justify-between items-center px-4 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white">
+            <h1 className="font-semibold text-lg">Collaborators</h1>
+            <button onClick={() => setIsSidePanelOpen(false)} className="p-2 rounded-full hover:bg-blue-400 hover:bg-opacity-30 transition-colors">
               <X size={20} />
             </button>
           </header>
@@ -460,17 +512,20 @@ app.listen(port, () => {
       </section>
 
       {/* Right Section - Code Editor */}
-      <section className="right flex-grow h-full flex">
+      <section className={`right flex-grow h-full flex
+                          md:translate-x-0 transition-transform duration-300 ease-in-out
+                          ${activeTab === 'code' ? 'translate-x-0' : 'translate-x-full absolute right-0 left-0'} 
+                          md:static md:flex`}>
         {/* File Explorer */}
-        <div className="explorer h-full w-64 bg-slate-100 border-r border-slate-200 overflow-y-auto">
-          <div className="p-3 border-b border-slate-200">
-            <h2 className="font-semibold text-slate-800 flex items-center gap-2">
-              <Code size={18} />
-              <span>Files</span>
+        <div className="explorer h-full w-64 bg-gradient-to-b from-slate-800 to-slate-900 text-white border-r border-slate-700 overflow-y-auto">
+          <div className="p-3 border-b border-slate-700 bg-slate-800">
+            <h2 className="font-semibold flex items-center gap-2">
+              <Folder size={18} />
+              <span>Project Files</span>
             </h2>
           </div>
 
-          <div className="file-tree w-full">
+          <div className="file-tree w-full mt-2">
             {Object.keys(fileTree).length > 0 ? (
               Object.keys(fileTree).map((file, index) => (
                 <button
@@ -479,31 +534,37 @@ app.listen(port, () => {
                     setCurrentFile(file)
                     setOpenFiles([...new Set([...openFiles, file])])
                   }}
-                  className={`tree-element cursor-pointer p-2.5 px-4 flex items-center gap-2 hover:bg-slate-200 w-full text-left transition-colors ${currentFile === file ? "bg-slate-200 border-l-4 border-blue-500" : ""}`}
+                  className={`tree-element cursor-pointer p-2.5 px-4 flex items-center gap-2 hover:bg-slate-700 w-full text-left transition-colors ${
+                    currentFile === file ? "bg-slate-700 border-l-4 border-blue-500" : ""
+                  }`}
                 >
-                  <p className={`font-medium ${currentFile === file ? "text-blue-600" : "text-slate-700"}`}>{file}</p>
+                  <span className="text-slate-300">{getFileIcon(file)}</span>
+                  <p className={`font-medium ${currentFile === file ? "text-blue-300" : "text-slate-300"}`}>{file}</p>
                 </button>
               ))
             ) : (
-              <p className="text-slate-500 text-center p-4">No files available</p>
+              <div className="text-slate-400 text-center p-6">
+                <Folder size={32} className="mx-auto mb-3 opacity-50" />
+                <p>No files available</p>
+              </div>
             )}
           </div>
         </div>
 
         {/* Code Editor Area */}
-        <div className="code-editor flex flex-col flex-grow h-full">
+        <div className="code-editor flex flex-col flex-grow h-full bg-slate-50">
           {/* Tabs and Actions */}
-          <div className="top flex justify-between w-full bg-slate-50 border-b border-slate-200">
+          <div className="top flex justify-between w-full bg-slate-800 border-b border-slate-700 text-white">
             <div className="files flex overflow-x-auto scrollbar-hide">
               {openFiles.map((file, index) => (
                 <button
                   key={index}
                   onClick={() => setCurrentFile(file)}
-                  className={`open-file cursor-pointer p-2.5 px-4 flex items-center gap-2 border-r border-slate-200 min-w-fit transition-colors
+                  className={`open-file cursor-pointer p-2.5 px-4 flex items-center gap-2 border-r border-slate-700 min-w-fit transition-colors
                     ${
                       currentFile === file
-                        ? "bg-white text-blue-600 border-t-2 border-t-blue-500"
-                        : "bg-slate-50 hover:bg-slate-100 text-slate-700"
+                        ? "bg-slate-900 text-blue-300 border-t-2 border-t-blue-500"
+                        : "bg-slate-800 hover:bg-slate-700 text-slate-300"
                     }`}
                 >
                   <p className="font-medium truncate max-w-40">{file}</p>
@@ -518,7 +579,7 @@ app.listen(port, () => {
                           )
                         }
                       }}
-                      className="ml-2 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-200 p-1"
+                      className="ml-2 text-slate-400 hover:text-white rounded-full hover:bg-slate-600 p-1"
                     >
                       <X size={14} />
                     </button>
@@ -531,7 +592,7 @@ app.listen(port, () => {
               <button
                 onClick={runProject}
                 disabled={isRunning || Object.keys(fileTree).length === 0}
-                className={`p-2 px-4 bg-green-500 text-white rounded-md flex items-center gap-2 transition-colors hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2
+                className={`p-2 px-4 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-md flex items-center gap-2 transition-all hover:shadow-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2
                   ${isRunning || Object.keys(fileTree).length === 0 ? "opacity-70 cursor-not-allowed" : ""}`}
               >
                 {isRunning ? (
@@ -550,7 +611,7 @@ app.listen(port, () => {
               {!fileExists("app.js") && (
                 <button
                   onClick={() => createBasicExpressApp()}
-                  className="p-2 px-4 bg-blue-500 text-white rounded-md flex items-center gap-2 transition-colors hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                  className="p-2 px-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-md flex items-center gap-2 transition-all hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
                 >
                   <Code size={16} />
                   <span>Create Express App</span>
@@ -562,7 +623,7 @@ app.listen(port, () => {
           {/* Code Editor Content */}
           <div className="bottom flex flex-grow max-w-full overflow-hidden">
             {currentFile && fileTree[currentFile] ? (
-              <div className="code-editor-area h-full overflow-auto flex-grow bg-white">
+              <div className="code-editor-area h-full overflow-auto flex-grow bg-slate-900 text-white">
                 <pre className="hljs h-full p-4">
                   <code
                     className="hljs h-full outline-none font-mono text-sm"
@@ -593,7 +654,7 @@ app.listen(port, () => {
                 </pre>
               </div>
             ) : (
-              <div className="flex items-center justify-center h-full w-full bg-white">
+              <div className="flex items-center justify-center h-full w-full bg-slate-900 text-white">
                 <div className="text-center text-slate-400">
                   <Code size={48} className="mx-auto mb-4 opacity-30" />
                   <p>{openFiles.length === 0 ? "Select a file to start editing" : "No file content available"}</p>
@@ -605,17 +666,17 @@ app.listen(port, () => {
 
         {/* Preview Panel */}
         {iframeUrl && webContainer && (
-          <div className="flex w-96 flex-col h-full border-l border-slate-200 bg-white">
-            <div className="address-bar border-b border-slate-200 p-2">
-              <div className="flex items-center bg-slate-100 rounded-md overflow-hidden">
-                <span className="p-2 bg-slate-200 text-slate-500">
+          <div className="flex w-96 flex-col h-full border-l border-slate-300 bg-white">
+            <div className="address-bar border-b border-slate-300 p-2 bg-slate-800 text-white">
+              <div className="flex items-center bg-slate-700 rounded-md overflow-hidden">
+                <span className="p-2 bg-slate-600 text-slate-300">
                   <ArrowRight size={16} />
                 </span>
                 <input
                   type="text"
                   onChange={(e) => setIframeUrl(e.target.value)}
                   value={iframeUrl}
-                  className="w-full p-2 bg-slate-100 outline-none text-sm"
+                  className="w-full p-2 bg-slate-700 outline-none text-sm text-white"
                 />
               </div>
             </div>
@@ -656,7 +717,7 @@ app.listen(port, () => {
                   >
                     <div
                       className={`aspect-square relative rounded-full w-10 h-10 flex items-center justify-center text-white
-                      ${Array.from(selectedUserId).includes(user._id) ? "bg-blue-500" : "bg-slate-600"}`}
+                      ${Array.from(selectedUserId).includes(user._id) ? "bg-gradient-to-br from-blue-500 to-blue-600" : "bg-gradient-to-br from-slate-600 to-slate-700"}`}
                     >
                       <User size={20} />
                     </div>
