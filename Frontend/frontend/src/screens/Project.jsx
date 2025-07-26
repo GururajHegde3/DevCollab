@@ -135,15 +135,18 @@ const Project = () => {
         const message = JSON.parse(data.message)
         console.log(message)
 
-        webContainer?.mount(message.fileTree)
+       const container = webContainer || await getWebContainer();
+    if (!webContainer) setWebContainer(container);
 
-        if (message.fileTree) {
-          setFileTree(message.fileTree || {})
-        }
-        setMessages((prevMessages) => [...prevMessages, data])
-      } else {
-        setMessages((prevMessages) => [...prevMessages, data])
-      }
+    if (message.fileTree) {
+      await container.mount(message.fileTree);
+      setFileTree(message.fileTree || {});
+    }
+
+    setMessages((prevMessages) => [...prevMessages, data]);
+  } else {
+    setMessages((prevMessages) => [...prevMessages, data]);
+  }
 
       // Scroll to bottom after receiving message
       setTimeout(() => {
