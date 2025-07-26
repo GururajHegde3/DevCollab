@@ -11,7 +11,7 @@ const Register = () => {
 
     function submitHandler(e){
         e.preventDefault();
-        axios.post('https://devcollab-4vyp.onrender.com/users/register',{email,password}).
+        axios.post('/users/register',{email,password}).
         then((res)=>{
             console.log(res.data)
             localStorage.setItem('token',res.data.token)
