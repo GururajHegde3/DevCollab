@@ -128,7 +128,7 @@ const Project = () => {
       })
     }
 
-    receiveMessage("project-message", (data) => {
+    receiveMessage("project-message",async (data) => {
       console.log(data)
 
       if (data.sender._id === "ai") {
